@@ -2,25 +2,29 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 )
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(...any) error
+	callback    func(cfg *config) error
 }
 
 var commandMap map[string]cliCommand
 
-func commandExit(...any) error {
+func commandExit(cfg *config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(...any) error {
+func commandHelp(cfg *config) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage: ")
 
@@ -33,75 +37,72 @@ func commandHelp(...any) error {
 
 var pageNumber = 1
 
-func commandDisplayMap(...any) error {
-	// api endpoint: https://pokeapi.co/api/v2/location-area/{id or name}/
+type config struct {
+	Next string
+	Prev string
+}
 
-	/*{
-	RAW JSON
-	  "id": 1,
-	  "name": "canalave-city-area",
-	  "game_index": 1,
-	  "encounter_method_rates": [
-	    {
-	      "encounter_method": {
-	        "name": "old-rod",
-	        "url": "https://pokeapi.co/api/v2/encounter-method/2/"
-	      },
-	      "version_details": [
-	        {
-	          "rate": 25,
-	          "version": {
-	            "name": "platinum",
-	            "url": "https://pokeapi.co/api/v2/version/14/"
-	          }
-	        }
-	      ]
-	    }
-	  ],
-	  "location": {
-	    "name": "canalave-city",
-	    "url": "https://pokeapi.co/api/v2/location/1/"
-	  },
-	  "names": [
-	    {
-	      "name": "",
-	      "language": {
-	        "name": "en",
-	        "url": "https://pokeapi.co/api/v2/language/9/"
-	      }
-	    }
-	  ],
-	  "pokemon_encounters": [
-	    {
-	      "pokemon": {
-	        "name": "tentacool",
-	        "url": "https://pokeapi.co/api/v2/pokemon/72/"
-	      },
-	      "version_details": [
-	        {
-	          "version": {
-	            "name": "diamond",
-	            "url": "https://pokeapi.co/api/v2/version/12/"
-	          },
-	          "max_chance": 60,
-	          "encounter_details": [
-	            {
-	              "min_level": 20,
-	              "max_level": 30,
-	              "condition_values": [],
-	              "chance": 60,
-	              "method": {
-	                "name": "surf",
-	                "url": "https://pokeapi.co/api/v2/encounter-method/5/"
-	              }
-	            }
-	          ]
-	        }
-	      ]
-	    }
-	  ]
+type locationAreas struct {
+	Count    int
+	Next     string
+	Previous string
+	Results  []struct {
+		Name string
+		Url  string
 	}
-	*/
+}
+
+func getLocationAreas(url string) (locationAreas, error) {
+	locationAreas := locationAreas{}
+	r, err := http.Get(url)
+	if err != nil {
+		return locationAreas, err
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return locationAreas, err
+	}
+	err = json.Unmarshal(body, &locationAreas)
+	if err != nil {
+		return locationAreas, err
+	}
+	return locationAreas, nil
+}
+
+func commandDisplayBMap(cfg *config) error {
+	url := cfg.Prev
+	if url == "" {
+		return errors.New("already in the first page! try the 'map' command")
+	}
+
+	locationAreas, err := getLocationAreas(url)
+	if err != nil {
+		return err
+	}
+
+	cfg.Next = locationAreas.Next
+	cfg.Prev = locationAreas.Previous
+	for _, area := range locationAreas.Results {
+		fmt.Println(area.Name)
+	}
+
+	return nil
+}
+
+func commandDisplayMap(cfg *config) error {
+	url := cfg.Next
+
+	locationAreas, err := getLocationAreas(url)
+	if err != nil {
+		return err
+	}
+
+	cfg.Next = locationAreas.Next
+	cfg.Prev = locationAreas.Previous
+	for _, area := range locationAreas.Results {
+		fmt.Println(area.Name)
+	}
 
 	return nil
 }
@@ -123,10 +124,19 @@ func init() {
 			description: "Displays the names of the next 20 locations in the Pokemon World!",
 			callback:    commandDisplayMap,
 		},
+		"bmap": {
+			name:        "bmap",
+			description: "Displays the names of the previous 20 locations in the Pokemon World!",
+			callback:    commandDisplayBMap,
+		},
 	}
 }
 
 func main() {
+	cfg := config{
+		Next: "https://pokeapi.co/api/v2/location-area/",
+		Prev: "",
+	}
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		fmt.Print("Pokedex > ")
@@ -142,7 +152,7 @@ func main() {
 			fmt.Println("Unknown command")
 			continue
 		}
-		err := command.callback()
+		err := command.callback(&cfg)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

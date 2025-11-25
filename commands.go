@@ -9,15 +9,36 @@ import (
 )
 
 type commandConfig struct {
-	Next   *string
-	Prev   *string
-	Client *pokeapiclient.PokeAPIClient
+	Next      *string
+	Prev      *string
+	Client    *pokeapiclient.PokeAPIClient
+	Arguments []string
 }
 
 type cliCommand struct {
 	name        string
 	description string
 	callback    func(cfg *commandConfig) error
+}
+
+func commandExplore(cfg *commandConfig) error {
+	if len(cfg.Arguments) == 0 {
+		return errors.New("type \"explore <location> \" to explore that location")
+	}
+	client := cfg.Client
+	location := cfg.Arguments[0]
+
+	pokemonList, err := client.GetPokemonsInLocation(location)
+	if err != nil {
+		return err
+	}
+
+	if len(pokemonList.PokemonEncounters) == 0 {
+		println("There are no pokemons in " + location + "!!!")
+		return nil
+	}
+
+	return nil
 }
 
 func commandExit(cfg *commandConfig) error {

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 
 	"github.com/kahnaisehC/pokedex/internal/pokeapiClient"
@@ -36,6 +37,10 @@ func commandExplore(cfg *commandConfig) error {
 	if len(pokemonList.PokemonEncounters) == 0 {
 		println("There are no pokemons in " + location + "!!!")
 		return nil
+	}
+	println("in " + location + " you can encounter the following Pokemon:")
+	for _, encounter := range pokemonList.PokemonEncounters {
+		println(encounter.Pokemon.Name)
 	}
 
 	return nil
@@ -95,6 +100,35 @@ func commandDisplayMap(cfg *commandConfig) error {
 	cfg.Prev = locationAreas.Previous
 	for _, area := range locationAreas.Results {
 		fmt.Println(area.Name)
+	}
+
+	return nil
+}
+
+func maxInt(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
+}
+
+func commandCatch(cfg *commandConfig) error {
+	const maxExp = 10000
+	var err error
+	baseUrl := "https://pokeapi.co/api/v2/pokemon/"
+	url := baseUrl + cfg.Arguments[1]
+
+	client := cfg.Client
+	pokemonDetails, err := client.GetPokemonDetails(url)
+	if err != nil {
+		return err
+	}
+	experience := pokemonDetails.BaseExperience
+	experience = maxInt(rand.Intn(maxExp)-experience, 0)
+	if experience <= maxExp/2 {
+		println("you have catched ")
+	} else {
+		println("you hhhnhhhhavents catched :(")
 	}
 
 	return nil

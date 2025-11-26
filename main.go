@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	pokeapiclient "github.com/kahnaisehC/pokedex/internal/pokeapiClient"
+	"github.com/kahnaisehC/pokedex/internal/pokeapiClient"
 )
 
 var commandMap map[string]cliCommand
@@ -32,6 +32,11 @@ func init() {
 			name:        "bmap",
 			description: "Displays the names of the previous 20 locations in the Pokemon World!",
 			callback:    commandDisplayBMap,
+		},
+		"explore": {
+			name:        "explore",
+			description: "Displays a list of all Pokemon found in the location\nUsage: type \"explore <location>\"",
+			callback:    commandExplore,
 		},
 	}
 }
@@ -59,10 +64,10 @@ func main() {
 			fmt.Println("Unknown command")
 			continue
 		}
+		cfg.Arguments = cleanedInput[1:]
 		err := command.callback(&cfg)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-
 	}
 }

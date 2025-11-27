@@ -10,10 +10,11 @@ import (
 )
 
 type commandConfig struct {
-	Next      *string
-	Prev      *string
-	Client    *pokeapiclient.PokeAPIClient
-	Arguments []string
+	Next            *string
+	Prev            *string
+	Client          *pokeapiclient.PokeAPIClient
+	Arguments       []string
+	CatchedPokemons []pokeapiclient.PokemonDetails
 }
 
 type cliCommand struct {
@@ -113,22 +114,29 @@ func maxInt(a, b int) int {
 }
 
 func commandCatch(cfg *commandConfig) error {
+	if len(cfg.Arguments) == 0 {
+		return errors.New("type \"catch <pokemons name> \" to try and catch a pokemon")
+	}
 	const maxExp = 10000
 	var err error
-	baseUrl := "https://pokeapi.co/api/v2/pokemon/"
-	url := baseUrl + cfg.Arguments[1]
 
+	baseUrl := "https://pokeapi.co/api/v2/pokemon/"
+
+	url := baseUrl + cfg.Arguments[0]
 	client := cfg.Client
-	pokemonDetails, err := client.GetPokemonDetails(url)
+	pokemon, err := client.GetPokemonDetails(url)
 	if err != nil {
 		return err
 	}
-	experience := pokemonDetails.BaseExperience
-	experience = maxInt(rand.Intn(maxExp)-experience, 0)
-	if experience <= maxExp/2 {
-		println("you have catched ")
+
+	println("Throwing a Pokeball at " + pokemon.Name + "...")
+	experience := pokemon.BaseExperience
+	chance := maxInt(rand.Intn(maxExp)-experience, 0)
+	if chance <= maxExp/2 {
+		println(pokemon.Name + " was caught!")
+		cfg.CatchedPokemons = append(cfg.CatchedPokemons, pokemon)
 	} else {
-		println("you hhhnhhhhavents catched :(")
+		println(pokemon.Name + " escaped!")
 	}
 
 	return nil

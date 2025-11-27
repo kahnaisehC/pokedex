@@ -38,6 +38,11 @@ func init() {
 			description: "Displays a list of all Pokemon found in the location\nUsage: type \"explore <location>\"",
 			callback:    commandExplore,
 		},
+		"catch": {
+			name:        "explore",
+			description: "Tries to catch the Pokemon passed as an argument\n Usage: type \"catch <pokemons name>\" to try and catch a pokemon!",
+			callback:    commandCatch,
+		},
 	}
 }
 

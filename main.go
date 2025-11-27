@@ -43,6 +43,16 @@ func init() {
 			description: "Tries to catch the Pokemon passed as an argument\n Usage: type \"catch <pokemons name>\" to try and catch a pokemon!",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspects the stats of the Pokemon passed as an argument if it was already caught\n Usage: type \"inspect <pokemons name>\" to inspect the stats of a pokemon!",
+			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Shows all the Pokemons you have caught at the moment!",
+			callback:    commandPokedex,
+		},
 	}
 }
 
